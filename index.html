@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>생기부 분석 · 대학 기준 맞춤</title>
+<style>
+:root{--ink:#1f2a37;--muted:#667085;--bg:#f7f6f2;--card:#fff;--line:#e2e0d8;--accent:#0f766e;--accent-bg:#e6f4f1;--bad:#b42318;--bad-bg:#fdecea;--mid:#b45309;--mid-bg:#fdf3e1;--good:#15803d;--good-bg:#e7f5ec}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 'Pretendard','Malgun Gothic','맑은 고딕',system-ui,sans-serif}
+main{max-width:1040px;margin:auto;padding:28px 16px 60px}
+h1{font-size:26px;margin:0 0 6px;letter-spacing:-.5px}
+h2{font-size:18px;margin:0 0 12px}
+h3{font-size:15px;margin:0}
+p{margin:6px 0}
+.muted,small{color:var(--muted);font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-top:16px}
+.step{display:inline-block;background:var(--accent);color:#fff;border-radius:99px;font-size:12px;font-weight:700;padding:1px 10px;margin-right:8px;vertical-align:2px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 13px}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+button.danger{color:var(--bad)}
+:focus-visible{outline:3px solid #f0b34a;outline-offset:2px}
+input[type=text],input[type=number],select,textarea{border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:#fff}
+textarea{width:100%;resize:vertical}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-top:10px}
+.grid2 label{font-size:13px;font-weight:700}
+.grid2 label input,.grid2 label select{display:block;width:100%;font-weight:400;margin-top:2px}
+.grid2 .wide{grid-column:1/-1}
+@media(max-width:640px){.grid2{grid-template-columns:1fr}}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:16px;text-align:center;margin-bottom:10px}
+.drop.drag{border-color:var(--accent);background:var(--accent-bg)}
+#status{margin-top:8px;font-size:13px}
+#status.bad{color:var(--bad)}
+.index{display:flex;justify-content:space-between;gap:16px;align-items:center;background:var(--accent-bg);border-radius:10px;padding:14px 18px}
+.index b{font-size:34px;line-height:1}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.stat{flex:1;min-width:130px;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.stat b{display:block;font-size:20px}
+.elcard{border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:12px}
+.eltop{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.eltop input{width:70px;text-align:right}
+.bar{height:10px;background:#eceae3;border-radius:6px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:var(--accent)}
+.sub{border-top:1px solid var(--line);padding:8px 0 2px;margin-top:8px}
+.subtop{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.chip{font-size:12px;font-weight:700;border-radius:5px;padding:1px 8px;white-space:nowrap}
+.chip.bad{background:var(--bad-bg);color:var(--bad)}
+.chip.mid{background:var(--mid-bg);color:var(--mid)}
+.chip.good{background:var(--good-bg);color:var(--good)}
+.chip.na{background:#eee;color:#555}
+summary{cursor:pointer;color:var(--accent);font-size:13px}
+.ev{display:flex;gap:8px;font-size:13px;padding:5px 0;align-items:flex-start}
+.ev input{margin-top:5px}
+.ment{border-left:4px solid var(--mid);background:var(--mid-bg);border-radius:0 10px 10px 0;padding:12px 16px;margin-top:10px}
+.ment p b{display:inline-block;min-width:74px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+td.num,th.num{text-align:right}
+tr.cur{background:var(--accent-bg)}
+.gt input{width:100%;padding:4px 6px}
+.gt td{padding:3px 4px}
+dialog{border:none;border-radius:14px;padding:0;width:min(680px,94vw);max-height:92vh}
+dialog::backdrop{background:rgba(20,30,40,.45)}
+dialog form{padding:22px}
+dialog label{display:block;font-size:13px;font-weight:700;margin-top:12px}
+dialog label input[type=text]{width:100%;font-weight:400}
+.el{border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:8px}
+.el .en{flex:1;min-width:140px}
+.el .ew{width:76px;text-align:right}
+#sum.bad{color:var(--bad);font-weight:700}
+.note{background:var(--mid-bg);color:#6b4a12;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:12px}
+@media print{body{background:#fff;font-size:11px}.noprint,button,dialog{display:none!important}.card{border:none;padding:8px 0;break-inside:auto}.elcard,.ment{break-inside:avoid}}
+</style>
+</head>
+<body>
+<main>
+<h1>생기부 분석 · 대학 기준 맞춤</h1>
+<p class="muted">학생부를 항목별로 나눠 대입에 제공되는 내용만 분석하고, 희망 대학·학과의 기준에 비춰 부족한 부분과 보완 멘트를 정리합니다. 합격 가능성을 예측하지 않습니다.<br>🔒 학생부는 이 브라우저 안에서만 처리하며 저장·전송하지 않습니다. 이름·주민번호·학번·학교명은 읽는 즉시 ●로 가립니다. (대학 기준만 이 브라우저에 저장)</p>
+
+<section class="card noprint">
+  <h2><span class="step">1</span>학생부 넣기</h2>
+  <div class="drop" id="drop">
+    <input type="file" id="file" accept="application/pdf,.pdf" hidden>
+    <button id="pick">학생부 PDF 선택</button>
+    <span class="muted"> 또는 여기에 끌어다 놓기 · 아래 칸에 내용을 직접 붙여넣어도 됩니다</span>
+  </div>
+  <label for="text" class="muted">학생부 내용 (개인정보를 가린 뒤의 글이 표시됩니다)</label>
+  <textarea id="text" rows="7" placeholder="학생부 내용을 붙여넣으세요. '분석하기'를 누르면 개인정보부터 가립니다."></textarea>
+  <div class="row" style="margin-top:8px"><label for="extra" class="muted">추가로 가릴 말</label><input type="text" id="extra" placeholder="자동으로 못 찾은 이름 등 (쉼표로 구분)" style="flex:1;min-width:200px"></div>
+  <div id="status" role="status"></div>
+</section>
+
+<section class="card noprint">
+  <h2><span class="step">2</span>희망 대학·학과와 평가 기준</h2>
+  <div class="row">
+    <label for="sel" class="muted">희망 대학(평가 기준)</label>
+    <select id="sel"></select>
+    <button id="edit">이 기준 수정</button>
+    <button id="add" class="primary">+ 대학 평가 기준 넣기</button>
+  </div>
+  <p class="muted" id="curinfo"></p>
+  <div class="grid2">
+    <label class="wide" id="findWrap" hidden>대학·학과 찾기 (2028학년도 대학별 권장과목 자료)<input type="text" id="find" list="findList" placeholder="대학명이나 학과명을 입력해 고르면 아래 칸이 채워집니다" autocomplete="off"><datalist id="findList"></datalist></label>
+    <label>희망 학과<input type="text" id="major" placeholder="예: 기계공학과"></label>
+    <label>계열<select id="field"></select></label>
+    <label class="wide">핵심 과목 (꼭 이수해야 할 과목)<input type="text" id="core" placeholder="쉼표로 구분, 같은 과목의 다른 이름은 /로 묶기"></label>
+    <label class="wide">권장 과목<input type="text" id="rec" placeholder="쉼표로 구분"></label>
+  </div>
+  <p class="note" id="subjNote" hidden></p>
+  <small>'대학·학과 찾기'로 고르면 대학이 안내한 과목이 채워집니다. 자료에 없는 학과는 계열별 일반 예시가 채워지니 대학 안내로 고쳐 쓰세요. "수학", "과학"처럼 교과 이름을 적으면 그 교과의 어느 과목이든 이수로 봅니다.</small>
+</section>
+
+<div class="noprint" style="margin-top:16px"><button class="primary" id="run" style="font-size:16px;padding:10px 22px">분석하기</button></div>
+
+<div id="result"></div>
+</main>
+
+<dialog id="dlg" aria-labelledby="dlgTitle">
+<form method="dialog">
+  <h2 id="dlgTitle">대학 평가 기준 넣기</h2>
+  <p class="muted">모집요강·시행계획의 학생부종합 서류평가 기준을 그대로 옮겨 적으세요.</p>
+  <label>대학명<input type="text" id="dUniv" placeholder="예: ○○대학교"></label>
+  <label>전형명<input type="text" id="dTrack" placeholder="예: 학생부종합(○○인재)"></label>
+  <label for="dPaste">모집요강 문구 붙여넣기 (선택)</label>
+  <textarea id="dPaste" rows="2" placeholder="예: 학업역량 40%, 진로역량 35%, 공동체역량 25%"></textarea>
+  <div class="row" style="margin-top:6px"><button type="button" id="dParse">붙여넣은 문구로 자동 채우기</button><small>채운 뒤 아래에서 꼭 확인·수정하세요.</small></div>
+  <label>평가요소와 반영 비율 <span id="sum" style="font-weight:400"></span></label>
+  <div id="dEls"></div>
+  <div class="row" style="margin-top:8px"><button type="button" id="dAddEl">+ 평가요소 추가</button></div>
+  <label for="dMemo">메모 (인재상, 수능최저, 면접 등 · 선택)</label>
+  <textarea id="dMemo" rows="2"></textarea>
+  <div class="row" style="margin-top:16px;justify-content:flex-end">
+    <button type="button" id="dDel" class="danger" style="margin-right:auto">이 기준 삭제</button>
+    <button value="cancel">취소</button>
+    <button type="button" id="dSave" class="primary">저장</button>
+  </div>
+</form>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
+<script src="subjects-data.js"></script>
+<script>
+//<logic> — 화면과 무관한 계산부. test.js가 이 구간만 떼어 검사한다.
+// 세부 평가항목은 대교협 공통 평가요소 체계를 기본값으로 쓴다. 키워드가 빈 항목은 성적으로 계산하거나(있을 때) '직접 확인'으로 둔다.
+const LIB={
+  학업:[['학업성취도',''],['학업태도','자기주도, 적극, 질문, 꾸준, 노력, 집중, 의지, 스스로, 끈기, 호기심, 열의'],['탐구력','탐구, 분석, 실험, 가설, 검증, 심화, 원리, 논리, 비교, 자료 조사, 보고서, 문제 해결, 문제해결, 추론, 고찰, 독서']],
+  진로:[['전공(계열) 관련 교과 이수 노력','과목 선택, 선택과목, 이수, 수강, 공동교육과정, 온라인학교, 진로선택, 융합선택'],['전공(계열) 관련 교과 성취도',''],['진로 탐색 활동과 경험','진로, 전공, 직업, 학과, 희망 분야, 관심 분야, 계열, 진학, 탐색, 체험, 관련 분야']],
+  공동체:[['협업과 소통능력','협업, 협력, 소통, 모둠, 팀원, 조율, 경청, 토론, 토의, 의견, 공동'],['나눔과 배려','배려, 나눔, 봉사, 도움, 돕, 존중, 멘토, 양보, 공감'],['성실성과 규칙준수','성실, 책임, 규칙, 꾸준, 맡은, 준수, 약속, 기한'],['리더십','리더, 회장, 반장, 부장, 주도, 이끌, 기획, 제안, 대표, 임원']],
+  성장:[['자기주도성','자기주도, 스스로, 주도, 계획, 목표, 자발'],['경험의 다양성','다양한, 폭넓, 융합, 새로운, 도전, 체험'],['창의적 문제해결력','창의, 문제 해결, 문제해결, 개선, 아이디어, 대안, 극복']]
+};
+// [학생에게 건넬 말, 기록(교사) 방향]
+const TIPS={
+  '학업성취도':['전체 성적을 한 번에 올리기는 어려워. 희망 학과와 관련 깊은 과목부터 목표 성취도를 정하고, 지난 시험에서 틀린 유형을 분석해 다음 시험 계획을 세워 보자. 학기가 갈수록 오르는 흐름을 만드는 것도 의미가 있어.','성적 추이와 함께 과목별 학습 과정(오답 분석, 학습 방법 개선)이 세특에서 읽히도록 합니다.'],
+  '학업태도':['수업에서 궁금했던 점을 그냥 넘기지 말고 질문하거나 스스로 찾아본 뒤, 새로 알게 된 것을 수업 시간에 짧게라도 나눠 보자. 어려웠던 단원을 어떻게 넘었는지 과정이 보이면 좋아.','질문, 오답 분석, 학습 계획처럼 배우려는 과정이 보이는 장면을 과목별 세특에 구체적 사례로 남깁니다.'],
+  '탐구력':['수업에서 배운 개념 하나를 골라 "왜 그럴까"를 한 단계 더 파고들어 보자. 주제를 고른 이유, 방법, 결과, 한계와 다음 질문 순서로 정리해 발표하거나 보고서로 내면 좋아.','탐구의 동기·과정·결과·후속 질문이 이어지게 쓰고, 참고한 책이나 자료로 확장한 내용을 담습니다.'],
+  '전공(계열) 관련 교과 이수 노력':['희망 학과에서 권장하는 과목을 대학 안내 자료에서 확인하고 다음 학기 과목 선택에 반영하자. 학교에 없는 과목은 공동교육과정이나 온라인학교로 들을 수 있어.','권장 과목 이수 여부를 점검하고, 미개설 과목을 공동교육과정·온라인학교로 수강한 사실이 드러나게 합니다.'],
+  '전공(계열) 관련 교과 성취도':['희망 학과와 직접 이어지는 과목의 성취도가 가장 먼저 눈에 띄어. 그 과목들에 공부 시간을 먼저 배분하고, 수행평가와 지필평가 중 약한 쪽을 찾아 보완하자.','전공 관련 과목에서 보인 이해 수준과 심화 탐구를 세특에 구체적으로 남겨 성취도를 보완합니다.'],
+  '진로 탐색 활동과 경험':['관심 분야와 수업 내용을 잇는 활동을 하나 정해 보자. 교과 시간에 전공 관련 주제로 발표하기, 동아리에서 관련 프로젝트 하기, 관련 책을 읽고 생각이 어떻게 달라졌는지 정리하기 같은 것들이야.','진로 희망이 왜 생겼고 어떻게 깊어졌는지가 세특·동아리·진로활동에서 이어지도록 경험 중심으로 기록합니다.'],
+  '협업과 소통능력':['모둠 활동에서 내가 맡은 역할과, 의견이 갈렸을 때 어떻게 맞춰 갔는지가 드러나게 참여해 보자. 친구 의견을 듣고 내 생각을 고친 경험도 좋은 사례야.','"참여함"으로 끝내지 않고 맡은 역할, 의견 조율 과정, 결과에 보탠 내용을 장면 중심으로 남깁니다.'],
+  '나눔과 배려':['학습 멘토링이나 학급에 필요한 일을 하나 맡아 꾸준히 해 보자. 한 번의 큰 봉사보다 오래 이어진 작은 실천이 기록에 더 잘 남아.','누구를 어떻게 도왔고 얼마나 지속했는지, 주변에 생긴 변화를 행동특성·창체에 구체적으로 적습니다.'],
+  '성실성과 규칙준수':['맡은 역할(1인 1역, 과제, 동아리 업무)을 기한 안에 끝까지 해내는 모습을 꾸준히 보여 주자. 출결과 제출 기한을 지키는 것이 기본이야.','맡은 일을 끝까지 해낸 사례와 꾸준함을 보여 주는 관찰 내용을 기록하고, 출결 상황을 함께 점검합니다.'],
+  '리더십':['임원이 아니어도 괜찮아. 모둠이나 동아리에서 먼저 제안하고, 계획을 세워 친구들과 끝까지 해낸 경험을 하나 만들어 보자.','직책 이름보다 무엇을 제안하고 어떻게 이끌어 어떤 결과를 냈는지를 적습니다.'],
+  '자기주도성':['누가 시켜서가 아니라 스스로 목표를 정하고 계획해서 해 본 활동을 만들어 보자. 계획대로 안 됐을 때 어떻게 고쳤는지도 중요해.','스스로 목표를 세우고 실행·점검한 과정을 드러내고, 지속 기간을 함께 적습니다.'],
+  '경험의 다양성':['관심 분야 밖의 수업이나 활동에도 하나쯤 도전해 보고, 그 경험이 내 관심사와 어떻게 이어지는지 생각해 보자.','서로 다른 영역의 경험이 어떻게 연결되고 확장됐는지 보이도록 기록합니다.'],
+  '창의적 문제해결력':['활동하다 막힌 지점을 그냥 두지 말고 다른 방법을 찾아 시도해 보자. 무엇이 문제였고 어떻게 바꿨는지 정리해 두면 좋아.','문제 상황, 시도한 대안, 개선된 결과를 순서대로 남깁니다.']
+};
+const QUAL=['과정','결과','도출','설계','성찰','개선','확장','주도','구체','제안','발표','지속'];
+const STOP=/^(서류|면접|학생부|단계|수능|교과|비교과|합계|총점|계|평가|전형|배점|반영)/;
+
+// 학생부 항목. skip이 있으면 문장 분석에서 뺀다(대입 미제공 항목 등).
+const SEC={
+  기타:{label:'구분 없음'},
+  인적:{label:'인적·학적사항',re:/인적\s*[·ㆍ・.]?\s*학적\s*사항/,skip:'개인정보라 지움'},
+  출결:{label:'출결상황',re:/출결\s*상황/,skip:'표 항목이라 직접 확인'},
+  수상:{label:'수상경력',re:/수상\s*경력/,skip:'대입 미제공'},
+  자격:{label:'자격증 및 인증 취득상황',re:/자격증\s*및\s*인증/,skip:'대입 미제공'},
+  학폭:{label:'학교폭력 조치상황 관리',re:/학교폭력\s*조치/,skip:'직접 확인'},
+  창체:{label:'창의적 체험활동상황',re:/창의적\s*체험\s*활동\s*상황/},
+  교과:{label:'교과학습발달상황',re:/교과\s*학습\s*발달\s*상황/},
+  독서:{label:'독서활동상황',re:/독서\s*활동\s*상황/,skip:'대입 미제공'},
+  행특:{label:'행동특성 및 종합의견',re:/행동\s*특성\s*및\s*종합\s*의견/}
+};
+for(const s of Object.values(SEC))if(s.re)s.head=new RegExp('^\\s*(?:\\d{1,2}\\s*[.．]\\s*)?'+s.re.source);
+// 줄마다 어느 항목에 속하는지 붙인다. 항목 제목은 짧은 줄의 맨 앞에 있을 때만 제목으로 본다.
+function tagLines(text){
+  let sec='기타';
+  return text.replace(/\r/g,'').split('\n').map(line=>{
+    const k=line.length<40&&Object.keys(SEC).find(k=>SEC[k].head?.test(line));
+    if(k)sec=k;
+    return {line,sec,head:!!k};
+  });
+}
+
+// 개인정보 가리기. 저장을 하지 않으므로 되돌릴 수 있는 암호화 대신 복원이 불가능한 ●로 바꾼다.
+const NOTNAME=/^(성별|주민|생년|주소|학년|번호|관계|담임|학과|학생)/;
+function maskPII(text,extra=[]){
+  const names=new Set(extra);
+  for(const m of text.matchAll(/성\s*명\s*[:：]?\s*([가-힣]{2,4})(?![가-힣])/g))if(!NOTNAME.test(m[1]))names.add(m[1]);
+  const tagged=tagLines(text),has=tagged.some(x=>x.head);
+  // 항목 제목이 있으면 첫 제목 앞부분(학년·반·번호·담임)과 인적·학적사항은 통째로 지운다
+  const kept=tagged.filter(x=>x.head||!has||(x.sec!=='기타'&&x.sec!=='인적'));
+  let t=kept.map(x=>x.line).join('\n'),n=0;
+  const rep=(re,to)=>{t=t.replace(re,(...a)=>{n++;return typeof to==='function'?to(...a):to})};
+  rep(/\d{6}\s*[-–]\s*[1-4*●○]\s*[\d*●○]{0,6}/g,'●●●●●●-●●●●●●●');
+  rep(/0\d{1,2}[-.)\s]\s?\d{3,4}[-.\s]\d{4}/g,'●●●-●●●●-●●●●');
+  rep(/(주\s*소\s*[:：]\s*)[^\n●]+/g,(m,a)=>a+'●●●');
+  rep(/[가-힣]{2,12}(초등학교|중학교|고등학교)/g,(m,a)=>'●●'+a);
+  rep(/학번\s*[:：]?\s*\d{4,6}/g,'학번 ●●●●●');
+  rep(/\d{1,2}\s*반\s*\d{1,2}\s*번(?![가-힣째])/g,'●반 ●번');
+  rep(/반\s*[:：]?\s*\d{1,2}(?=\s*번호)/g,'반 ●');
+  rep(/번호\s*[:：]?\s*\d{1,2}(?!\d)/g,'번호 ●');
+  for(const name of names)rep(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'),'●●●');
+  return {text:t,n,hidden:tagged.length-kept.length,nameFound:names.size>0};
+}
+
+// 성적표 한 줄: [학기] 교과 과목 학점 원점수/평균(표준편차) 성취도(수강자수) [석차등급] [성취도별 분포]
+const GR=/^(.*?)\s*(\d{1,2})\s+(\d{1,3})\s*\/\s*(\d{1,3}(?:\.\d+)?)\s*(?:\(\s*\d+(?:\.\d+)?\s*\))?\s*([A-E])\s*\(\s*(\d+)\s*\)(.*)$/;
+const GYOGWA=/^(국어|수학|영어|한국사|사회|과학|체육|예술|정보|한문|교양|제2외국어|사회\(.*|과학\(.*|기술.*)$/;
+function parseGradeLine(line){
+  const m=line.match(GR);if(!m)return null;
+  const tk=m[1].trim().split(/\s+/).filter(Boolean);
+  if(/^[12]$/.test(tk[0]))tk.shift();              // 학기
+  if(tk.length>1&&GYOGWA.test(tk[0]))tk.shift();   // 교과
+  if(!tk.length)return null;
+  const rank=m[7].replace(/[A-E]\s*\(\s*[\d.]+\s*\)/g,' ').match(/(?:^|\s)([1-9])(?=\s|$)/);
+  return {year:null,name:tk.join(' '),credit:+m[2],ach:m[5],rank:rank?+rank[1]:null};
+}
+
+// PDF 줄바꿈은 낱말 중간에서도 생기므로 한 줄바꿈은 붙이고, 마침표와 빈 줄에서 자른다
+function splitSentences(t){
+  return t.replace(/\r/g,'').replace(/([^\n])\n(?!\n)/g,'$1').split(/(?<=[가-힣)]\.)\s*|\n+/).map(s=>s.replace(/\s+/g,' ').trim()).filter(s=>s.length>=15);
+}
+// 글 → 분석할 문장(항목 표시 포함) + 성적표 + 항목별 처리 요약
+function prepare(text){
+  const tagged=tagLines(text),has=tagged.some(x=>x.head),grades=[],buf={};
+  let year=null;
+  for(const x of tagged){
+    if(x.head)continue;
+    const y=x.line.match(/^\s*\[?\s*([1-3])\s*학년\s*\]?\s*$/);
+    if(y){year=+y[1];continue}
+    if(x.sec==='교과'||!has){const g=parseGradeLine(x.line);if(g){g.year=year;grades.push(g);continue}}
+    // 대입 미제공: 개인 봉사활동 실적, 진로 희망분야
+    if(/\(개인\)/.test(x.line)||(x.line.length<=40&&/희망\s*분야/.test(x.line)))continue;
+    (buf[x.sec]??=[]).push(x.line);
+  }
+  const sents=[],secs=[],summary=[];
+  for(const [k,lines] of Object.entries(buf)){
+    const ss=splitSentences(lines.join('\n')).filter(s=>!/\(자율동아리\)/.test(s));   // 자율동아리도 미제공
+    if(!ss.length)continue;
+    summary.push({label:SEC[k].label,n:ss.length,why:SEC[k].skip||''});
+    if(!SEC[k].skip)for(const s of ss){sents.push(s);secs.push(SEC[k].label)}
+  }
+  return {sents,secs,summary,grades,hasSections:has};
+}
+
+// 계열별 핵심·권장 과목 일반 예시(2022 이름/2015 이름). 대학 공식 안내가 아니므로 화면에서 고쳐 쓰게 한다.
+const FIELDS={
+  '공학':['미적분Ⅱ/미적분, 기하, 물리학/물리학Ⅰ, 역학과 에너지/물리학Ⅱ','확률과 통계, 화학/화학Ⅰ, 전자기와 양자, 정보'],
+  '컴퓨터·AI':['미적분Ⅱ/미적분, 확률과 통계, 기하','정보, 인공지능 기초, 인공지능 수학, 물리학/물리학Ⅰ'],
+  '자연과학':['미적분Ⅱ/미적분, 확률과 통계','기하, 물리학/물리학Ⅰ, 화학/화학Ⅰ, 생명과학/생명과학Ⅰ, 지구과학/지구과학Ⅰ'],
+  '의약·보건':['미적분Ⅱ/미적분, 확률과 통계, 생명과학/생명과학Ⅰ, 화학/화학Ⅰ','세포와 물질대사/생명과학Ⅱ, 생물의 유전, 물질과 에너지/화학Ⅱ, 화학 반응의 세계, 기하'],
+  '경영·경제':['확률과 통계, 미적분Ⅰ/수학Ⅱ, 경제','미적분Ⅱ/미적분, 경제 수학, 사회와 문화/사회·문화'],
+  '사회과학':['사회와 문화/사회·문화, 확률과 통계','정치/정치와 법, 법과 사회, 경제, 현대사회와 윤리/생활과 윤리, 세계사'],
+  '인문':['문학, 독서와 작문/독서','세계사, 동아시아 역사 기행/동아시아사, 윤리와 사상, 한문/한문Ⅰ'],
+  '교육':['','교육의 이해/교육학, 인간과 심리/심리학, 현대사회와 윤리/생활과 윤리'],
+  '예체능':['','']
+};
+const FIELD_RE=[[/의예|의학|치의|한의|약학|간호|수의|보건|치료/,'의약·보건'],[/교육|사범/,'교육'],[/컴퓨터|소프트웨어|인공지능|AI|데이터|정보/i,'컴퓨터·AI'],[/공학|기계|전기|전자|건축|신소재|화공|토목|항공|반도체|로봇/,'공학'],[/수학|물리|화학|생명|생물|지구|천문|통계|자연/,'자연과학'],[/경영|경제|회계|무역|금융|세무/,'경영·경제'],[/행정|정치|사회|심리|미디어|언론|법|복지|외교/,'사회과학'],[/국어|국문|영문|영어|사학|역사|철학|문학|언어|문헌|중문|일문|독문|불문/,'인문'],[/음악|미술|체육|디자인|연극|영화|무용/,'예체능']];
+function fieldFor(major){return (FIELD_RE.find(([re])=>re.test(major))||[])[1]||''}
+function parseList(s){return s.split(',').map(x=>x.split('/').map(y=>y.trim()).filter(Boolean)).filter(a=>a.length)}
+const norm=s=>s.replace(/[\s·ㆍ・①-⑨]/g,'').replace(/Ⅱ|II/g,'2').replace(/Ⅰ|I/g,'1').toLowerCase();
+// 대학이 과목 대신 교과(군)로 안내한 경우("수학, 과학")에 쓰는 과목 → 교과(군) 판별식. 이름 규칙이라 학교 자체 개설 과목은 빗나갈 수 있다.
+const GROUP={
+  수학:/수학|대수|미적분|기하|확률과통계|통계/,
+  과학:/^(?!데이터|생활과학|스포츠).*(과학|물리|화학|생명|지구|역학과에너지|전자기와양자|물질과에너지|세포와물질대사|생물의유전|환경생태)/,
+  국어:/^(?!영미).*(국어|화법|독서|문학|작문|언어와매체|매체의사소통|언어생활탐구)/,
+  영어:/영어|영미/,
+  사회:/^(?!과학의).*(사회|지리|역사|세계사|동아시아|경제(?!수학)|정치|법과|윤리|금융|국제관계|지속가능)/,
+  역사:/^(?!과학의).*(역사|세계사|동아시아|한국사)/,
+  윤리:/윤리/,
+  지리:/지리|도시의미래/,
+  일반사회:/사회와문화|사회문화|정치|법과사회|^경제$|사회문제|금융|국제관계/,
+  정보:/^정보|인공지능기초|데이터과학|소프트웨어/,
+  한문:/한문|한자/,
+  제2외국어:/독일어|프랑스어|스페인어|중국어|일본어|러시아어|아랍어|베트남어/
+};
+// 안내된 이름 하나가 성적표 과목과 맞는지: 같은 이름, Ⅰ·Ⅱ만 다른 이름(미적분 ↔ 미적분Ⅱ, 물리학 ↔ 물리학Ⅰ), 또는 그 교과(군)에 속함
+function subjMatch(alt,name){const a=norm(alt),n=norm(name);return a===n||a===n.replace(/[12]$/,'')||!!GROUP[a]?.test(n)}
+// 대학 안내 원문 → '과목, 과목/과목' 목록. 문장형 안내나 '중 1과목' 같은 조건은 목록으로 옮길 수 없어 원문을 note로 돌려준다.
+function cleanSubjects(raw){
+  const src=(raw||'').replace(/\s+/g,' ').trim();
+  if(!src||src==='-')return {list:'',note:''};
+  let lost=false;
+  const items=src.replace(/-?\s*(일반|진로|융합)\s*선택\s*(과목)?\s*[:：]|관련\s*과목\s*[:：]?|[()\[\]]/g,',').split(',').map(t=>{
+    const s=t.replace(/[①-⑨]/g,'').replace(/\s+또는\s+/g,'/').replace(/^[-\s]*(특히\s+)?/,'').replace(/\s+등$/,'').trim();
+    const one=s.replace(/\s*중\s*\d\s*과목.*$/,'');
+    if(one!==s)lost=true;
+    if(!one)return '';
+    if(one.split('/').every(x=>x.length>=2&&x.length<=14)&&!/이수|권장|고려|따라|따른|포함|불요|과목|이상|그 외|교과|계열|적성/.test(one))return one;
+    lost=true;
+    return (one.match(/^(국어|수학|영어|사회|과학|정보|한문|제2외국어)(?=\s|$)/)||[''])[0];
+  }).filter(Boolean);
+  return {list:[...new Set(items)].join(', '),note:lost?src:''};
+}
+const ACH={A:100,B:75,C:50,D:25,E:0};
+// 성적 정량 분석. scale은 석차등급 체계(5 또는 9). 점수는 등급을 0~100으로 편 값이고, 등급이 없으면 성취도(A~E)로 대신한다.
+function quant(grades,core,rec,scale){
+  const pt=g=>g.rank?100-(g.rank-1)*100/(scale-1):ACH[g.ach]??null;
+  const wavg=(rows,f)=>{let s=0,w=0;for(const r of rows){const v=f(r);if(v!=null){s+=v*(r.credit||1);w+=r.credit||1}}return w?s/w:null};
+  const check=list=>list.map(alts=>({label:alts.join('/'),rows:grades.filter(g=>alts.some(a=>subjMatch(a,g.name)))}));
+  const C=check(core),R=check(rec),done=x=>x.filter(i=>i.rows.length).length,den=core.length*2+rec.length;
+  // 한 과목이 "물리학"과 "과학" 두 항목에 다 걸릴 수 있어 중복을 걷어낸다
+  const mrows=[...new Set([...C,...R].flatMap(i=>i.rows))],rk=g=>g.rank||null;
+  return {C,R,credits:grades.reduce((a,g)=>a+(g.credit||0),0),avgRank:wavg(grades,rk),overall:wavg(grades,pt),
+    take:den?Math.round(100*(done(C)*2+done(R))/den):null,   // 핵심 과목은 권장 과목의 2배로 친다
+    major:wavg(mrows,pt),majorRank:wavg(mrows,rk)};
+}
+// 세부항목 이름으로 성적 기반 점수를 찾는다. 없으면 null(키워드 분석으로 넘어감).
+function quantFor(name,Q){
+  if(!Q)return null;
+  const r=v=>v==null?null:Math.round(v);
+  return /이수/.test(name)?Q.take:/학업\s*성취/.test(name)?r(Q.overall):/성취도/.test(name)?r(Q.major):null;
+}
+
+function libFor(name){
+  const k=/학업/.test(name)?'학업':/진로|전공/.test(name)?'진로':/공동체|인성/.test(name)?'공동체':/성장|발전|자기주도/.test(name)?'성장':null;
+  return (k?LIB[k]:[[name||'세부항목','']]).map(([n,kw])=>({name:n,kw:splitKw(kw)}));
+}
+function splitKw(s){return s.split(',').map(x=>x.trim()).filter(Boolean)}
+function subsToText(subs){return subs.map(s=>s.name+': '+s.kw.join(', ')).join('\n')}
+function parseSubs(text){return text.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{const i=l.search(/[:：]/);return i<0?{name:l,kw:[]}:{name:l.slice(0,i).trim(),kw:splitKw(l.slice(i+1))}}).filter(s=>s.name)}
+function tipFor(sub){return TIPS[sub]||[`'${sub}'이(가) 드러나는 활동을 하나 정해서, 무엇을 왜 했고 어떤 결과와 배움이 있었는지 말할 수 있게 해 보자.`,`'${sub}'과(와) 관련된 실제 활동의 동기·과정·결과를 구체적으로 기록합니다.`]}
+
+// 모집요강 문구 → [{name, weight}]
+function parseCriteria(t){
+  const out=[],seen=new Set();
+  for(const m of t.matchAll(/([가-힣A-Za-z·]{2,15})\s*[(:：]?\s*(\d{1,3}(?:\.\d+)?)\s*(?:%|점)/g))
+    if(!STOP.test(m[1])&&!seen.has(m[1])){seen.add(m[1]);out.push({name:m[1],weight:+m[2]})}
+  const names=[...new Set(t.match(/[가-힣]{2,6}(?:역량|적합성|가능성)|인성/g)||[])];
+  if(out.length>=names.length)return out;
+  // 표를 복사해 이름과 숫자가 따로 떨어진 경우: 개수가 같으면 순서대로 짝짓는다
+  const nums=[...t.matchAll(/(\d{1,3}(?:\.\d+)?)\s*(?:%|점)/g)].map(m=>+m[1]);
+  return names.map((n,i)=>({name:n,weight:nums.length===names.length?nums[i]:Math.round(100/names.length)}));
+}
+
+// shortcut: 키워드 규칙 점수(근거 문장 수 기반, 약 12문장에서 65점). 실제 학생부 여러 건으로 눈금을 맞춰 본 값이 아니므로, 써 보고 15를 조정할 것.
+// Q(성적 분석)가 있으면 성취도·이수 항목은 키워드 대신 성적으로 채점한다.
+function analyze(sents,c,excluded=new Set(),override={},Q=null){
+  const elements=c.elements.map(e=>{
+    const subs=e.subs.map(s=>{
+      const qs=quantFor(s.name,Q);
+      if(qs!==null)return {name:s.name,score:qs,ev:[],quant:true};
+      if(!s.kw.length)return {name:s.name,score:null,ev:[]};
+      const ev=[];
+      sents.forEach((t,i)=>{const hits=s.kw.filter(k=>t.includes(k));if(hits.length)ev.push({i,hits,pts:Math.min(3,hits.length)+Math.min(1.2,QUAL.filter(q=>t.includes(q)).length*.3)})});
+      ev.sort((a,b)=>b.pts-a.pts);
+      const raw=ev.filter(x=>!excluded.has(x.i)).reduce((a,x)=>a+x.pts,0);
+      return {name:s.name,score:Math.round(100*(1-Math.exp(-raw/15))),ev};
+    });
+    const sc=subs.filter(s=>s.score!==null);
+    const auto=sc.length?Math.round(sc.reduce((a,s)=>a+s.score,0)/sc.length):null;
+    return {name:e.name,weight:e.weight,auto,score:override[e.name]??auto,subs};
+  });
+  const ok=elements.filter(e=>e.score!==null&&e.weight>0),W=ok.reduce((a,e)=>a+e.weight,0);
+  return {elements,index:W?ok.reduce((a,e)=>a+e.weight*e.score,0)/W:null};
+}
+function level(s){return s===null?['na','직접 확인']:s<35?['bad','부족']:s<65?['mid','보통']:['good','충분']}
+// 보완 우선순위 = 대학 반영 비율 × 부족한 정도
+function gaps(r){
+  const W=r.elements.reduce((a,e)=>a+e.weight,0)||1;
+  return r.elements.flatMap(e=>e.subs.filter(s=>s.score!==null).map(s=>({el:e.name,weight:e.weight,sub:s.name,score:s.score,n:s.ev.length,quant:!!s.quant,pri:e.weight/W*(100-s.score)}))).sort((a,b)=>b.pri-a.pri);
+}
+//</logic>
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const mk=(univ,track,w)=>({id:univ,univ,track,memo:'',elements:['학업역량','진로역량','공동체역량'].map((n,i)=>({name:n,weight:w[i],subs:libFor(n)}))});
+const SAMPLES=[mk('예시 · 학업 중시형','실제 대학 기준으로 바꿔 쓰세요',[50,30,20]),mk('예시 · 진로 중시형','실제 대학 기준으로 바꿔 쓰세요',[30,50,20]),mk('예시 · 균형형','실제 대학 기준으로 바꿔 쓰세요',[35,35,30])];
+const KEY='schoolRecordCriteria';
+let list;try{list=JSON.parse(localStorage.getItem(KEY))}catch{}
+if(!Array.isArray(list)||!list.length)list=SAMPLES;
+let curId=list[0].id,sents=[],sentSec=[],summary=[],hasSections=false,grades=[],scaleSel='auto',ran=false,excluded=new Set(),override={},editing=null;
+const cur=()=>list.find(c=>c.id===curId)||list[0];
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(list))}catch{}};
+const status=(m,bad)=>{$('#status').textContent=m;$('#status').className=bad?'bad':''};
+const rerender=()=>{if(ran)renderResult()};
+
+$('#field').innerHTML='<option value="">선택 안 함</option>'+Object.keys(FIELDS).map(f=>`<option>${f}</option>`).join('');
+function renderSel(){
+  $('#sel').innerHTML=list.map(c=>`<option value="${esc(c.id)}"${c.id===cur().id?' selected':''}>${esc(c.univ)} · ${esc(c.track)}</option>`).join('');
+  const c=cur();
+  $('#curinfo').textContent=c.elements.map(e=>`${e.name} ${e.weight}%`).join(' / ')+(c.memo?' · 메모: '+c.memo:'');
+  $('#major').value=c.major||'';$('#field').value=c.field||'';$('#core').value=c.core||'';$('#rec').value=c.rec||'';
+  $('#subjNote').hidden=!c.note;$('#subjNote').textContent=c.note?'대학 안내 원문 — '+c.note:'';
+}
+// 권장과목 자료(subjects-data.js)가 있으면 대학·학과 찾기를 켠다
+const FIND=new Map((window.SUBJ||[]).map(r=>[`${r[0]} · ${r[1]}${r[2]?' '+r[2]:''}`,r]));
+if(FIND.size){
+  $('#findWrap').hidden=false;
+  $('#findList').innerHTML=[...FIND.keys()].map(k=>`<option value="${esc(k)}">`).join('');
+  $('#find').onchange=e=>{
+    const r=FIND.get(e.target.value);if(!r)return;
+    const [u,unit,dept,core,rec,etc]=r,a=cleanSubjects(core),b=cleanSubjects(rec);
+    // 이 대학의 평가 기준이 아직 없으면 학업 30/진로 50/공동체 20으로 하나 만들어 둔다(전형명 자리에 확인 안내)
+    let c=list.find(x=>x.univ.includes(u)||u.includes(x.univ));
+    if(!c){c=mk(u,'반영 비율을 확인해 고치세요',[30,50,20]);c.id=Date.now().toString(36);list.push(c)}
+    Object.assign(c,{major:dept||unit,field:'',core:a.list,rec:b.list,note:[a.note&&'핵심과목: '+a.note,b.note&&'권장과목: '+b.note,etc&&etc!=='-'&&'비고: '+etc.replace(/\s+/g,' ')].filter(Boolean).join(' / ')});
+    curId=c.id;save();renderSel();rerender();e.target.value='';
+  };
+}
+/* ── 희망 학과와 과목 ── */
+function setField(f,force){
+  const c=cur(),old=FIELDS[c.field]||['',''];
+  // 직접 고친 과목 목록은 덮어쓰지 않는다(계열을 직접 바꿨을 때만 새 예시로 교체)
+  if(force||((c.core||'')===old[0]&&(c.rec||'')===old[1])){[c.core,c.rec]=FIELDS[f]||['','']}
+  c.field=f;
+}
+$('#major').onchange=e=>{const c=cur();c.major=e.target.value.trim();c.note='';const f=fieldFor(c.major);if(f)setField(f,false);save();renderSel();rerender()};
+$('#field').onchange=e=>{cur().note='';setField(e.target.value,true);save();renderSel();rerender()};
+$('#core').onchange=e=>{cur().core=e.target.value;save();rerender()};
+$('#rec').onchange=e=>{cur().rec=e.target.value;save();rerender()};
+
+/* ── 대학 평가 기준 창 ── */
+function elRow(e){
+  const d=document.createElement('div');d.className='el';
+  d.innerHTML=`<div class="row"><input type="text" class="en" aria-label="평가요소 이름" placeholder="평가요소 (예: 학업역량)" value="${esc(e.name)}"><input type="number" class="ew" aria-label="반영 비율" min="0" max="100" value="${esc(e.weight)}"><span>%</span><button type="button" class="del danger">삭제</button></div><details><summary>세부 평가항목과 찾을 표현(키워드)</summary><textarea class="es" rows="4" aria-label="세부 평가항목과 키워드">${esc(subsToText(e.subs))}</textarea><small>한 줄에 "세부항목: 키워드, 키워드". 키워드를 비워 두면 성적으로 계산하거나 '직접 확인'할 항목이 됩니다.</small></details>`;
+  $('#dEls').append(d);
+}
+function sumCheck(){
+  const s=[...document.querySelectorAll('#dEls .ew')].reduce((a,i)=>a+(+i.value||0),0);
+  $('#sum').textContent=`(합계 ${s}%${s===100?'':' — 100%가 아닙니다. 그대로 저장하면 비율대로 환산합니다'})`;$('#sum').className=s===100?'':'bad';
+}
+function openDlg(c){
+  editing=c;
+  $('#dlgTitle').textContent=c?'대학 평가 기준 수정':'대학 평가 기준 넣기';
+  $('#dUniv').value=c?.univ||'';$('#dTrack').value=c?.track||'';$('#dMemo').value=c?.memo||'';$('#dPaste').value='';
+  $('#dEls').innerHTML='';
+  (c?c.elements:mk('','',[40,30,30]).elements).forEach(elRow);
+  $('#dDel').hidden=!c;sumCheck();$('#dlg').showModal();
+}
+$('#add').onclick=()=>openDlg(null);
+$('#edit').onclick=()=>openDlg(cur());
+$('#dAddEl').onclick=()=>{elRow({name:'',weight:0,subs:[]});sumCheck()};
+$('#dParse').onclick=()=>{
+  const found=parseCriteria($('#dPaste').value);
+  if(!found.length){alert('평가요소와 비율을 찾지 못했습니다. 아래 칸에 직접 입력해 주세요.');return}
+  $('#dEls').innerHTML='';found.forEach(f=>elRow({...f,subs:libFor(f.name)}));sumCheck();
+};
+$('#dEls').addEventListener('click',e=>{if(e.target.classList.contains('del')){e.target.closest('.el').remove();sumCheck()}});
+$('#dEls').addEventListener('input',e=>{if(e.target.classList.contains('ew'))sumCheck()});
+// 요소 이름을 적으면 그에 맞는 기본 세부항목을 채워 준다(이미 적은 내용은 건드리지 않음)
+$('#dEls').addEventListener('change',e=>{if(e.target.classList.contains('en')){const ta=e.target.closest('.el').querySelector('.es');if(!ta.value.trim())ta.value=subsToText(libFor(e.target.value.trim()))}});
+$('#dSave').onclick=()=>{
+  const univ=$('#dUniv').value.trim();
+  const elements=[...document.querySelectorAll('#dEls .el')].map(d=>({name:d.querySelector('.en').value.trim(),weight:Math.max(0,+d.querySelector('.ew').value||0),subs:parseSubs(d.querySelector('.es').value)})).filter(e=>e.name);
+  if(!univ){alert('대학명을 입력하세요.');return}
+  if(!elements.length){alert('평가요소를 하나 이상 입력하세요.');return}
+  // 새 기준은 지금 적어 둔 희망 학과·과목을 이어받는다
+  const base=editing||cur();
+  const c={id:editing?.id||Date.now().toString(36),univ,track:$('#dTrack').value.trim(),memo:$('#dMemo').value.trim(),elements,major:base.major,field:base.field,core:base.core,rec:base.rec};
+  if(editing)list[list.indexOf(editing)]=c;else list.push(c);
+  curId=c.id;save();$('#dlg').close();renderSel();rerender();
+};
+$('#dDel').onclick=()=>{
+  if(!confirm(`'${editing.univ}' 기준을 삭제할까요?`))return;
+  list=list.filter(c=>c!==editing);if(!list.length)list=SAMPLES;
+  curId=list[0].id;save();$('#dlg').close();renderSel();rerender();
+};
+$('#sel').onchange=e=>{curId=e.target.value;renderSel();rerender()};
+
+/* ── 학생부 읽기 ── */
+async function readPdf(file){
+  if(!window.pdfjsLib)throw new Error('PDF 읽기 도구를 불러오지 못했습니다. 인터넷 연결을 확인하거나 내용을 직접 붙여넣어 주세요.');
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer(),cMapUrl:'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',cMapPacked:true}).promise;
+  let out='';
+  for(let p=1;p<=pdf.numPages;p++){
+    status(`${pdf.numPages}쪽 중 ${p}쪽을 읽는 중…`);
+    const c=await (await pdf.getPage(p)).getTextContent();
+    // 표의 한 행이 한 줄이 되도록 같은 높이(y)의 글자를 모아 왼쪽부터 잇는다. 성적표 읽기가 여기에 달려 있다.
+    const rows=new Map();
+    for(const it of c.items){if(!it.str.trim())continue;const y=Math.round(it.transform[5]/3);if(!rows.has(y))rows.set(y,[]);rows.get(y).push(it)}
+    out+=[...rows.entries()].sort((a,b)=>b[0]-a[0]).map(([,r])=>{
+      r.sort((a,b)=>a.transform[4]-b.transform[4]);
+      return r.map((it,i)=>{const prev=r[i-1],gap=prev?it.transform[4]-(prev.transform[4]+prev.width):0;return (gap>(it.height||10)*.25?' ':'')+it.str}).join('');
+    }).join('\n')+'\n\n';
+  }
+  if(out.replace(/\s/g,'').length<200)throw new Error('읽을 수 있는 글자가 거의 없습니다. 스캔본이면 글자가 살아 있는 PDF로 다시 내려받거나 내용을 붙여넣어 주세요.');
+  return out;
+}
+// 가린 글만 화면에 올린다
+function maskInto(raw){
+  const m=maskPII(raw,splitKw($('#extra').value));
+  $('#text').value=m.text;
+  const warn=!m.nameFound&&!m.text.includes('●●●')?' ⚠ 이름을 자동으로 찾지 못했습니다. "추가로 가릴 말"에 이름을 넣고 다시 분석해 주세요.':'';
+  return (m.n||m.hidden?`개인정보 ${m.n}곳을 가렸고 인적사항 ${m.hidden}줄을 지웠습니다.`:'')+warn;
+}
+async function handleFile(f){
+  if(!f)return;
+  try{const msg=maskInto(await readPdf(f));status(`${f.name.replace(/[가-힣]{2,4}/g,'●●')}을 읽었습니다. ${msg} 가려진 내용을 확인하고 '분석하기'를 누르세요.`)}
+  catch(err){status(err.message||'PDF를 읽지 못했습니다.',true)}
+}
+$('#pick').onclick=()=>$('#file').click();
+$('#file').onchange=e=>handleFile(e.target.files[0]);
+const drop=$('#drop');
+drop.ondragover=e=>{e.preventDefault();drop.classList.add('drag')};
+drop.ondragleave=()=>drop.classList.remove('drag');
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove('drag');handleFile(e.dataTransfer.files[0])};
+
+/* ── 분석 결과 ── */
+$('#run').onclick=()=>{
+  const msg=maskInto($('#text').value);
+  const p=prepare($('#text').value);
+  ({sents,summary,grades,hasSections}=p);sentSec=p.secs;excluded=new Set();override={};scaleSel='auto';
+  if(!sents.length&&!grades.length){ran=false;status('분석할 학생부 내용이 없습니다. PDF를 선택하거나 내용을 붙여넣어 주세요.',true);$('#result').innerHTML='';return}
+  ran=true;status(`${msg?msg+' ':''}문장 ${sents.length}개, 성적 ${grades.length}과목을 분석했습니다.`);renderResult();$('#result').scrollIntoView({behavior:'smooth'});
+};
+const scale=()=>scaleSel==='auto'?(grades.some(g=>g.rank>5)?9:5):+scaleSel;
+const quantOf=c=>grades.length?quant(grades,parseList(c.core||''),parseList(c.rec||''),scale()):null;
+const f2=v=>v==null?'–':v.toFixed(2);
+function mentList(r){const g=gaps(r),low=g.filter(x=>x.score<65);return low.length?low:g.slice(0,1)}
+function missing(Q){return Q?[...Q.C.filter(i=>!i.rows.length).map(i=>i.label+'(핵심)'),...Q.R.filter(i=>!i.rows.length).map(i=>i.label+'(권장)')]:[]}
+const basis=g=>g.quant?'성적 기반':`근거 ${g.n}문장`;
+function mentText(c,r,Q){
+  const miss=missing(Q);
+  return `[${c.univ} ${c.track}${c.major?' · '+c.major:''}] 보완 안내\n\n`+mentList(r).map((g,i)=>{const [a,b]=tipFor(g.sub);return `${i+1}. ${g.el} › ${g.sub} (${basis(g)} · ${level(g.score)[1]})\n- 반영 비율: ${g.el} ${g.weight}%\n${/이수/.test(g.sub)&&miss.length?`- 아직 이수하지 않은 과목: ${miss.join(', ')}\n`:''}- 학생에게: ${a}\n- 기록 방향: ${b}`}).join('\n\n');
+}
+function quantHtml(c,Q){
+  const editor=`<details><summary>성적표 확인·수정 (${grades.length}과목)</summary>
+    <table class="gt"><thead><tr><th style="width:60px">학년</th><th>과목</th><th style="width:70px">학점</th><th style="width:70px">성취도</th><th style="width:80px">석차등급</th><th style="width:60px"></th></tr></thead><tbody>
+    ${grades.map((g,i)=>`<tr>${['year','name','credit','ach','rank'].map(f=>`<td><input ${f==='name'||f==='ach'?'type="text"':'type="number" min="1"'} data-g="${i}:${f}" aria-label="${f}" value="${esc(g[f]??'')}"></td>`).join('')}<td><button data-gdel="${i}" class="danger">삭제</button></td></tr>`).join('')}
+    </tbody></table>
+    <div class="row" style="margin-top:8px"><button id="gadd">+ 과목 추가</button><label><small>석차등급 체계 </small><select id="scale"><option value="auto">자동(${scale()}등급제)</option><option value="5"${scaleSel==='5'?' selected':''}>5등급제</option><option value="9"${scaleSel==='9'?' selected':''}>9등급제</option></select></label><small>PDF에서 읽은 값이 틀리면 고치세요. 고치면 바로 다시 계산합니다.</small></div></details>`;
+  if(!Q)return `<p class="muted">성적표를 찾지 못했습니다. 아래에서 과목을 직접 넣으면 성취도와 과목 이수를 함께 분석합니다.</p>${editor}`;
+  const ach={};grades.forEach(g=>{if(g.ach)ach[g.ach]=(ach[g.ach]||0)+1});
+  const trend=[1,2,3].map(y=>{const q=quant(grades.filter(g=>g.year===y),[],[],scale());return q.avgRank==null?null:`${y}학년 ${f2(q.avgRank)}`}).filter(Boolean);
+  const rowsOf=(items,kind)=>items.map(i=>`<tr><td>${esc(i.label)}</td><td>${kind}</td><td>${i.rows.length?'○ 이수':'<span class="chip bad">미이수</span>'}</td><td class="num">${i.rows.reduce((a,r)=>a+(r.credit||0),0)||'–'}</td><td>${esc(i.rows.map(r=>r.ach).join(', ')||'–')}</td><td>${esc(i.rows.map(r=>r.rank??'–').join(', ')||'–')}</td></tr>`).join('');
+  const nC=Q.C.filter(i=>i.rows.length).length,nR=Q.R.filter(i=>i.rows.length).length,miss=missing(Q);
+  const has=Q.C.length+Q.R.length>0;
+  return `<div class="stats">
+    <div class="stat"><small>전체 평균 석차등급 (${scale()}등급제)</small><b>${f2(Q.avgRank)}</b></div>
+    <div class="stat"><small>이수 학점 합계</small><b>${Q.credits}</b></div>
+    <div class="stat"><small>성취도 분포</small><b style="font-size:15px">${esc(Object.keys(ach).sort().map(k=>`${k} ${ach[k]}과목`).join(' · ')||'–')}</b></div>
+    <div class="stat"><small>전공 관련 과목 평균 등급</small><b>${f2(Q.majorRank)}</b></div>
+  </div>
+  ${trend.length>1?`<p><b>학년별 평균 등급</b> ${trend.join(' → ')}</p>`:''}
+  ${has?`<table><thead><tr><th>${esc(c.major||'희망 학과')} 관련 과목</th><th>구분</th><th>이수</th><th class="num">학점</th><th>성취도</th><th>석차등급</th></tr></thead><tbody>${rowsOf(Q.C,'핵심')}${rowsOf(Q.R,'권장')}</tbody></table>
+  <p><b>과목 선택 평가</b> 핵심 과목 ${Q.C.length}개 중 ${nC}개, 권장 과목 ${Q.R.length}개 중 ${nR}개를 이수했습니다(이수 지수 ${Q.take}).${miss.length?` 아직 이수하지 않은 과목: ${esc(miss.join(', '))}.`:' 안내된 과목을 모두 이수했습니다.'}${Q.major==null?'':` 이수한 관련 과목의 성취 지수는 ${Math.round(Q.major)}점으로 전체(${Math.round(Q.overall)}점)보다 ${Q.major>=Q.overall?'높거나 같습니다':'낮습니다. 전공 관련 과목 성취도를 먼저 살펴보세요'}.`}</p>`
+  :'<p class="muted">2단계에서 희망 학과와 핵심·권장 과목을 넣으면 과목 선택과 전공 관련 성취도를 평가합니다.</p>'}
+  ${c.note?`<p class="note">대학 안내 원문 — ${esc(c.note)}</p>`:''}
+  ${editor}`;
+}
+function renderResult(){
+  const open=[...document.querySelectorAll('#result details')].map(d=>d.open);
+  const c=cur(),Q=quantOf(c),r=analyze(sents,c,excluded,override,Q),ments=mentList(r),miss=missing(Q);
+  const allGood=ments.every(g=>g.score>=65);
+  const manual=r.elements.flatMap(e=>e.subs.filter(s=>s.score===null).map(s=>`${e.name} › ${s.name}`));
+  const cmp=list.map(x=>({x,idx:analyze(sents,x,excluded,override,quantOf(x)).index})).sort((a,b)=>(b.idx??-1)-(a.idx??-1));
+  const used=summary.filter(s=>!s.why),cut=summary.filter(s=>s.why);
+  $('#result').innerHTML=`
+<section class="card">
+  <h2><span class="step">3</span>분석 결과</h2>
+  <div class="index"><div><b style="font-size:17px">${esc(c.univ)}</b> · ${esc(c.track)}${c.major?' · <b>'+esc(c.major)+'</b>':''}<br><small>대학 기준 맞춤 지수 = 평가요소별 지수 × 대학 반영 비율. 상담용 참고값이며 대학의 평가 점수가 아닙니다.</small></div><b>${r.index===null?'–':r.index.toFixed(1)}</b></div>
+  <p class="muted"><b>분석에 쓴 항목</b> ${esc(used.map(s=>`${s.label} ${s.n}문장`).join(' · ')||'없음')}${cut.length?`<br><b>뺀 항목</b> ${esc(cut.map(s=>`${s.label}(${s.why})`).join(' · '))}`:''}<br>개인 봉사활동 실적, 자율동아리, 진로 희망분야 줄도 대입 미제공이라 뺐습니다.${hasSections?'':' ⚠ 항목 제목을 찾지 못해 글 전체를 분석했습니다. 수상경력·독서활동처럼 대입에 제공되지 않는 내용이 섞여 있으면 지우고 다시 분석하세요.'}</p>
+</section>
+<section class="card">
+  <h2><span class="step">4</span>성적·과목 선택 (정량 분석)</h2>
+  ${quantHtml(c,Q)}
+</section>
+<section class="card">
+  <h2><span class="step">5</span>평가요소별 분석</h2>
+  <p class="muted">근거 문장은 창체·세특·행동특성 등 분석에 쓴 항목 전체에서 찾습니다.</p>
+  ${r.elements.map(e=>`<div class="elcard">
+    <div class="eltop"><h3>${esc(e.name)} <small>반영 ${e.weight}%</small></h3><label><small>지수(교사 수정 가능) </small><input type="number" min="0" max="100" data-ov="${esc(e.name)}" value="${e.score??''}" placeholder="–"></label></div>
+    <div class="bar"><i style="width:${e.score??0}%"></i></div>
+    ${e.subs.map(s=>{const [cls,lab]=level(s.score);return `<div class="sub"><div class="subtop"><span>${esc(s.name)}</span><span><span class="chip ${cls}">${lab}</span>${s.score===null?'':` <small>${s.score}점 · ${s.quant?'성적 기반':`근거 ${s.ev.length}문장`}</small>`}</span></div>
+      ${s.quant?'<small>위 성적·과목 선택 분석에서 계산한 값입니다.</small>':s.score===null?'<small>성적표를 넣으면 계산합니다. 없으면 원문으로 직접 확인하세요. (점수 계산에서 제외)</small>':s.ev.length?`<details><summary>근거 문장 보기 (상위 ${Math.min(6,s.ev.length)}개)</summary>${s.ev.slice(0,6).map(v=>`<label class="ev"><input type="checkbox" data-ex="${v.i}"${excluded.has(v.i)?'':' checked'}><span>${esc(sents[v.i])}<br><small>[${esc(sentSec[v.i])}] 찾은 표현: ${esc(v.hits.join(', '))}</small></span></label>`).join('')}<small>맥락상 근거가 아니면 체크를 풀어 제외하세요.</small></details>`:'<small>관련 표현을 찾지 못했습니다.</small>'}</div>`}).join('')}
+  </div>`).join('')}
+</section>
+<section class="card">
+  <div class="row" style="justify-content:space-between"><h2 style="margin:0"><span class="step">6</span>보완 멘트</h2><span class="noprint row"><button id="copy">멘트 복사</button><button id="print">상담자료 인쇄</button></span></div>
+  <p class="muted">${allGood?'뚜렷하게 부족한 항목은 없습니다. 가장 낮은 항목 하나만 안내합니다.':'이 대학의 반영 비율이 높고 근거가 약한 항목부터 순서대로 보여 줍니다.'}</p>
+  ${ments.map((g,i)=>{const [a,b]=tipFor(g.sub),[cls,lab]=level(g.score);return `<div class="ment"><h3>${i+1}. ${esc(g.el)} › ${esc(g.sub)} <span class="chip ${cls}">${lab}</span> <small>${esc(g.el)} 반영 ${g.weight}% · ${basis(g)}</small></h3>${/이수/.test(g.sub)&&miss.length?`<p><b>미이수 과목</b> ${esc(miss.join(', '))}</p>`:''}<p><b>학생에게</b> ${esc(a)}</p><p><b>기록 방향</b> ${esc(b)}</p></div>`}).join('')}
+  ${manual.length?`<p class="muted" style="margin-top:12px">직접 확인할 항목: ${esc(manual.join(', '))}</p>`:''}
+  <div class="note">보완 멘트는 학생이 앞으로 실제로 할 활동을 권하는 말입니다. 학생부에는 실제로 수행하고 교사가 관찰한 내용만 기록하세요.</div>
+</section>
+<section class="card">
+  <h2><span class="step">7</span>저장한 대학 기준끼리 비교</h2>
+  <table><thead><tr><th>대학 · 전형 · 학과</th><th>반영 비율</th><th class="num">맞춤 지수</th></tr></thead><tbody>
+  ${cmp.map(({x,idx})=>`<tr class="${x===c?'cur':''}"><td>${esc(x.univ)} · ${esc(x.track)}${x.major?' · '+esc(x.major):''}</td><td>${esc(x.elements.map(e=>e.name+' '+e.weight).join(' / '))}</td><td class="num">${idx===null?'–':idx.toFixed(1)}</td></tr>`).join('')}
+  </tbody></table>
+  <p class="muted">같은 학생부를 각 대학의 반영 비율과 학과별 과목 기준으로 다시 계산한 값입니다. 지원 여부는 모집단위, 지원자격, 수능최저, 면접 등을 함께 확인해 판단하세요.</p>
+</section>`;
+  document.querySelectorAll('#result details').forEach((d,i)=>d.open=!!open[i]);
+  $('#copy').onclick=async()=>{try{await navigator.clipboard.writeText(mentText(c,r,Q));$('#copy').textContent='복사했습니다'}catch{alert('복사하지 못했습니다. 멘트를 직접 선택해 복사해 주세요.')}};
+  $('#print').onclick=()=>{document.querySelectorAll('#result details').forEach(d=>d.open=true);print()};
+}
+$('#result').addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.ex!==undefined){t.checked?excluded.delete(+t.dataset.ex):excluded.add(+t.dataset.ex)}
+  else if(t.dataset.ov!==undefined){if(t.value==='')delete override[t.dataset.ov];else override[t.dataset.ov]=Math.max(0,Math.min(100,+t.value||0))}
+  else if(t.dataset.g){const [i,f]=t.dataset.g.split(':'),v=t.value.trim();grades[i][f]=f==='name'?v:f==='ach'?v.toUpperCase():(v===''?null:+v)}
+  else if(t.id==='scale')scaleSel=t.value;
+  else return;
+  renderResult();
+});
+$('#result').addEventListener('click',e=>{
+  const t=e.target;
+  if(t.id==='gadd')grades.push({year:null,name:'',credit:null,ach:'',rank:null});
+  else if(t.dataset.gdel!==undefined)grades.splice(+t.dataset.gdel,1);
+  else return;
+  renderResult();
+});
+renderSel();
+</script>
+</body>
+</html>
