@@ -196,6 +196,7 @@ function tagLines(text){
 }
 
 // 개인정보 가리기. 저장을 하지 않으므로 되돌릴 수 있는 암호화 대신 복원이 불가능한 ●로 바꾼다.
+const PAGEMARK=/^\s*(●●(초등학교|중학교|고등학교)\s*[\/ ]\s*\d{4}|반\s*●\s*번호\s*●|.*\d{1,3}\.\d{1,3}\.[\d*]{1,3}\.\d{1,3}\/)/;
 const NOTNAME=/^(성별|주민|생년|주소|학년|번호|관계|담임|학과|학생)/;
 function maskPII(text,extra=[]){
   const names=new Set(extra);
@@ -214,20 +215,37 @@ function maskPII(text,extra=[]){
   rep(/반\s*[:：]?\s*\d{1,2}(?=\s*번호)/g,'반 ●');
   rep(/번호\s*[:：]?\s*\d{1,2}(?!\d)/g,'번호 ●');
   for(const name of names)rep(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'),'●●●');
-  return {text:t,n,hidden:tagged.length-kept.length,nameFound:names.size>0};
+  const lines=t.split('\n'),body=lines.filter(l=>!PAGEMARK.test(l));
+  n+=lines.length-body.length;
+  return {text:body.join('\n'),n,hidden:tagged.length-kept.length,nameFound:names.size>0};
 }
 
-// 성적표 한 줄: [학기] 교과 과목 학점 원점수/평균(표준편차) 성취도(수강자수) [석차등급] [성취도별 분포]
-const GR=/^(.*?)\s*(\d{1,2})\s+(\d{1,3})\s*\/\s*(\d{1,3}(?:\.\d+)?)\s*(?:\(\s*\d+(?:\.\d+)?\s*\))?\s*([A-E])\s*\(\s*(\d+)\s*\)(.*)$/;
+// 성적표 한 줄. 두 양식을 읽는다.
+//  나이스 2022 개정: [학기] [교과] 과목 학점 원점수/평균 성취도 [분포비율…] [석차등급] 수강자수
+//  이전 양식:        [학기] 교과 과목 학점 원점수/평균(표준편차) 성취도(수강자수) [석차등급] [분포비율…]
+const GR=/^(.*?)\s*(\d{1,2})\s+(\d{1,3})\s*\/\s*(\d{1,3}(?:\.\d+)?)\s*(?:\(\s*[\d.]+\s*\))?\s*([A-E])(?![가-힣A-Za-z])(.*)$/;
+const DIST=/[A-E]\s*\(\s*\d+(?:\.\d+)?\s*\)/g;   // 성취도별 분포비율 조각 A(61.1)
 const GYOGWA=/^(국어|수학|영어|한국사|사회|과학|체육|예술|정보|한문|교양|제2외국어|사회\(.*|과학\(.*|기술.*)$/;
-function parseGradeLine(line){
-  const m=line.match(GR);if(!m)return null;
-  const tk=m[1].trim().split(/\s+/).filter(Boolean);
+const GR2=/^(.{2,40}?)\s+(\d{1,2})\s+([A-EP])\s*$/;   // 체육·예술·과학탐구실험 등
+function gradeName(pre){
+  const tk=pre.replace(DIST,' ').trim().split(/\s+/).filter(Boolean);
   if(/^[12]$/.test(tk[0]))tk.shift();              // 학기
   if(tk.length>1&&GYOGWA.test(tk[0]))tk.shift();   // 교과
+  return tk.join(' ');
+}
+function parseGradeLine(line){
+  const m=line.match(GR);
+  if(!m){
+    const s=line.match(GR2),name=s&&gradeName(s[1]);
+    return name&&!/[.,:]/.test(name)?{year:null,name,credit:+s[2],ach:s[3],rank:null}:null;
+  }
+  const tk=[gradeName(m[1])].filter(Boolean);
   if(!tk.length)return null;
-  const rank=m[7].replace(/[A-E]\s*\(\s*[\d.]+\s*\)/g,' ').match(/(?:^|\s)([1-9])(?=\s|$)/);
-  return {year:null,name:tk.join(' '),credit:+m[2],ach:m[5],rank:rank?+rank[1]:null};
+  const old=/^\s*\(\s*\d+\s*\)/.test(m[6]);        // 성취도(수강자수) 꼴이면 이전 양식
+  const nums=m[6].replace(/^\s*\(\s*\d+\s*\)/,' ').replace(DIST,' ').match(/\d+/g)||[];
+  // 새 양식은 '석차등급 수강자수' 순서라 숫자가 둘 이상일 때만 첫 숫자가 등급이다(하나뿐이면 수강자수)
+  const rank=(old?nums.length>=1:nums.length>=2)&&/^[1-9]$/.test(nums[0])?+nums[0]:null;
+  return {year:null,name:tk.join(' '),credit:+m[2],ach:m[5],rank};
 }
 
 // PDF 줄바꿈은 낱말 중간에서도 생기므로 한 줄바꿈은 붙이고, 마침표와 빈 줄에서 자른다
@@ -242,7 +260,7 @@ function prepare(text){
     if(x.head)continue;
     const y=x.line.match(/^\s*\[?\s*([1-3])\s*학년\s*\]?\s*$/);
     if(y){year=+y[1];continue}
-    if(x.sec==='교과'||!has){const g=parseGradeLine(x.line);if(g){g.year=year;grades.push(g);continue}}
+    if(x.sec==='교과'||!has){const g=parseGradeLine(x.line);if(g){g.year=year;grades.push(g);continue}if(DIST.test(x.line)){DIST.lastIndex=0;continue}}
     // 대입 미제공: 개인 봉사활동 실적, 진로 희망분야
     if(/\(개인\)/.test(x.line)||(x.line.length<=40&&/희망\s*분야/.test(x.line)))continue;
     (buf[x.sec]??=[]).push(x.line);
@@ -315,7 +333,8 @@ function quant(grades,core,rec,scale){
   const C=check(core),R=check(rec),done=x=>x.filter(i=>i.rows.length).length,den=core.length*2+rec.length;
   // 한 과목이 "물리학"과 "과학" 두 항목에 다 걸릴 수 있어 중복을 걷어낸다
   const mrows=[...new Set([...C,...R].flatMap(i=>i.rows))],rk=g=>g.rank||null;
-  return {C,R,credits:grades.reduce((a,g)=>a+(g.credit||0),0),avgRank:wavg(grades,rk),overall:wavg(grades,pt),
+  const ranked=grades.filter(rk);
+  return {C,R,credits:grades.reduce((a,g)=>a+(g.credit||0),0),avgRank:wavg(grades,rk),overall:wavg(ranked.length?ranked:grades,pt),
     take:den?Math.round(100*(done(C)*2+done(R))/den):null,   // 핵심 과목은 권장 과목의 2배로 친다
     major:wavg(mrows,pt),majorRank:wavg(mrows,rk)};
 }
@@ -493,9 +512,10 @@ async function readPdf(file){
   return out;
 }
 // 가린 글만 화면에 올린다
+let maskedText=null;
 function maskInto(raw){
   const m=maskPII(raw,splitKw($('#extra').value));
-  $('#text').value=m.text;
+  $('#text').value=maskedText=m.text;
   const warn=!m.nameFound&&!m.text.includes('●●●')?' ⚠ 이름을 자동으로 찾지 못했습니다. "추가로 가릴 말"에 이름을 넣고 다시 분석해 주세요.':'';
   return (m.n||m.hidden?`개인정보 ${m.n}곳을 가렸고 인적사항 ${m.hidden}줄을 지웠습니다.`:'')+warn;
 }
@@ -513,7 +533,7 @@ drop.ondrop=e=>{e.preventDefault();drop.classList.remove('drag');handleFile(e.da
 
 /* ── 분석 결과 ── */
 $('#run').onclick=()=>{
-  const msg=maskInto($('#text').value);
+  const msg=$('#text').value===maskedText?'':maskInto($('#text').value);
   const p=prepare($('#text').value);
   ({sents,summary,grades,hasSections}=p);sentSec=p.secs;excluded=new Set();override={};scaleSel='auto';
   if(!sents.length&&!grades.length){ran=false;status('분석할 학생부 내용이 없습니다. PDF를 선택하거나 내용을 붙여넣어 주세요.',true);$('#result').innerHTML='';return}
@@ -549,7 +569,7 @@ function quantHtml(c,Q){
   </div>
   ${trend.length>1?`<p><b>학년별 평균 등급</b> ${trend.join(' → ')}</p>`:''}
   ${has?`<table><thead><tr><th>${esc(c.major||'희망 학과')} 관련 과목</th><th>구분</th><th>이수</th><th class="num">학점</th><th>성취도</th><th>석차등급</th></tr></thead><tbody>${rowsOf(Q.C,'핵심')}${rowsOf(Q.R,'권장')}</tbody></table>
-  <p><b>과목 선택 평가</b> 핵심 과목 ${Q.C.length}개 중 ${nC}개, 권장 과목 ${Q.R.length}개 중 ${nR}개를 이수했습니다(이수 지수 ${Q.take}).${miss.length?` 아직 이수하지 않은 과목: ${esc(miss.join(', '))}.`:' 안내된 과목을 모두 이수했습니다.'}${Q.major==null?'':` 이수한 관련 과목의 성취 지수는 ${Math.round(Q.major)}점으로 전체(${Math.round(Q.overall)}점)보다 ${Q.major>=Q.overall?'높거나 같습니다':'낮습니다. 전공 관련 과목 성취도를 먼저 살펴보세요'}.`}</p>`
+  <p><b>과목 선택 평가</b> 핵심 과목 ${Q.C.length}개 중 ${nC}개, 권장 과목 ${Q.R.length}개 중 ${nR}개를 이수했습니다(이수 지수 ${Q.take}).${miss.length?` 아직 이수하지 않은 과목: ${esc(miss.join(', '))}.`:' 안내된 과목을 모두 이수했습니다.'}${Q.major==null?'':` 이수한 관련 과목의 성취 지수는 ${Math.round(Q.major)}점으로 전체(${Math.round(Q.overall)}점)${Q.major>=Q.overall-5?'와 비슷하거나 더 높습니다':'보다 낮습니다. 전공 관련 과목 성취도를 먼저 살펴보세요'}.`}</p>`
   :'<p class="muted">2단계에서 희망 학과와 핵심·권장 과목을 넣으면 과목 선택과 전공 관련 성취도를 평가합니다.</p>'}
   ${c.note?`<p class="note">대학 안내 원문 — ${esc(c.note)}</p>`:''}
   ${editor}`;
