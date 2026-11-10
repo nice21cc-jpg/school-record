@@ -347,7 +347,7 @@ function quantFor(name,Q){
 }
 
 function libFor(name){
-  const k=/학업/.test(name)?'학업':/진로|전공|적합|계열|창의융합/.test(name)?'진로':/공동체|인성|사회|나우리/.test(name)?'공동체':/성장|발전|자기주도|자기계발|잠재/.test(name)?'성장':/탐구/.test(name)?'탐구':null;
+  const k=/학업|학습/.test(name)?'학업':/진로|전공|적합|계열|창의융합|진학/.test(name)?'진로':/공동체|인성|사회|나우리|성실/.test(name)?'공동체':/성장|발전|자기주도|자기계발|잠재/.test(name)?'성장':/탐구/.test(name)?'탐구':null;
   return (k?LIB[k]:[[name||'세부항목','']]).map(([n,kw])=>({name:n,kw:splitKw(kw)}));
 }
 function splitKw(s){return s.split(',').map(x=>x.trim()).filter(Boolean)}
