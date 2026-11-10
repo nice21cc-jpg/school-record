@@ -150,6 +150,7 @@ const LIB={
   학업:[['학업성취도',''],['학업태도','자기주도, 적극, 질문, 꾸준, 노력, 집중, 의지, 스스로, 끈기, 호기심, 열의'],['탐구력','탐구, 분석, 실험, 가설, 검증, 심화, 원리, 논리, 비교, 자료 조사, 보고서, 문제 해결, 문제해결, 추론, 고찰, 독서']],
   진로:[['전공(계열) 관련 교과 이수 노력','과목 선택, 선택과목, 이수, 수강, 공동교육과정, 온라인학교, 진로선택, 융합선택'],['전공(계열) 관련 교과 성취도',''],['진로 탐색 활동과 경험','진로, 전공, 직업, 학과, 희망 분야, 관심 분야, 계열, 진학, 탐색, 체험, 관련 분야']],
   공동체:[['협업과 소통능력','협업, 협력, 소통, 모둠, 팀원, 조율, 경청, 토론, 토의, 의견, 공동'],['나눔과 배려','배려, 나눔, 봉사, 도움, 돕, 존중, 멘토, 양보, 공감'],['성실성과 규칙준수','성실, 책임, 규칙, 꾸준, 맡은, 준수, 약속, 기한'],['리더십','리더, 회장, 반장, 부장, 주도, 이끌, 기획, 제안, 대표, 임원']],
+  탐구:[['탐구력','탐구, 분석, 실험, 가설, 검증, 심화, 원리, 논리, 비교, 자료 조사, 보고서, 문제 해결, 문제해결, 추론, 고찰, 독서']],
   성장:[['자기주도성','자기주도, 스스로, 주도, 계획, 목표, 자발'],['경험의 다양성','다양한, 폭넓, 융합, 새로운, 도전, 체험'],['창의적 문제해결력','창의, 문제 해결, 문제해결, 개선, 아이디어, 대안, 극복']]
 };
 // [학생에게 건넬 말, 기록(교사) 방향]
@@ -169,7 +170,7 @@ const TIPS={
   '창의적 문제해결력':['활동하다 막힌 지점을 그냥 두지 말고 다른 방법을 찾아 시도해 보자. 무엇이 문제였고 어떻게 바꿨는지 정리해 두면 좋아.','문제 상황, 시도한 대안, 개선된 결과를 순서대로 남깁니다.']
 };
 const QUAL=['과정','결과','도출','설계','성찰','개선','확장','주도','구체','제안','발표','지속'];
-const STOP=/^(서류|면접|학생부|단계|수능|교과|비교과|합계|총점|계|평가|전형|배점|반영)/;
+const STOP=/^(서류|면접|학생부|단계|수능|교과|비교과|합계|총점|평가|전형|배점|반영)|^계$/;
 
 // 학생부 항목. skip이 있으면 문장 분석에서 뺀다(대입 미제공 항목 등).
 const SEC={
@@ -346,7 +347,7 @@ function quantFor(name,Q){
 }
 
 function libFor(name){
-  const k=/학업/.test(name)?'학업':/진로|전공/.test(name)?'진로':/공동체|인성/.test(name)?'공동체':/성장|발전|자기주도/.test(name)?'성장':null;
+  const k=/학업/.test(name)?'학업':/진로|전공|적합|계열|창의융합/.test(name)?'진로':/공동체|인성|사회|나우리/.test(name)?'공동체':/성장|발전|자기주도|자기계발|잠재/.test(name)?'성장':/탐구/.test(name)?'탐구':null;
   return (k?LIB[k]:[[name||'세부항목','']]).map(([n,kw])=>({name:n,kw:splitKw(kw)}));
 }
 function splitKw(s){return s.split(',').map(x=>x.trim()).filter(Boolean)}
@@ -387,6 +388,21 @@ function analyze(sents,c,excluded=new Set(),override={},Q=null){
   const ok=elements.filter(e=>e.score!==null&&e.weight>0),W=ok.reduce((a,e)=>a+e.weight,0);
   return {elements,index:W?ok.reduce((a,e)=>a+e.weight*e.score,0)/W:null};
 }
+// 대학 이름 견주기용: '학교'와 빈칸만 떼어 "경성대학교" = "경성대"로 본다. 캠퍼스 괄호는 남겨 한양대와 한양대(ERICA)를 구분한다.
+const univKey=s=>String(s).replace(/\s/g,'').replace(/학교(?=\(|$)/,'');
+// 평가 비율 자료(ratio: [대학, 전형, "학업역량 40, 진로역량 35 …", 메모]) + 브라우저에 저장된 기준 → 기준 목록.
+// 자료에서 온 기준은 매번 자료 값으로 새로 만들고(자료를 고치면 반영되게), 사용자가 창에서 직접 고친 것(edited)만 저장본을 쓴다.
+// 그 대학에 골라 둔 희망 학과·과목은 저장본에서 이어받는다.
+function mergeCriteria(stored,ratio){
+  const list=stored.filter(c=>!String(c.id).startsWith('r:')||c.edited);
+  for(const [univ,track,text,memo] of ratio){
+    const els=parseCriteria(String(text).replace(/(\d)(?![\d.]|\s*[%점])/g,'$1%')),id='r:'+univ+'|'+track;
+    if(!els.length||list.some(c=>c.id===id))continue;
+    const old=stored.find(c=>c.id===id)||{};
+    list.push({id,univ,track,memo:memo||'',elements:els.map(e=>({...e,subs:libFor(e.name)})),major:old.major,field:old.field,core:old.core,rec:old.rec,note:old.note});
+  }
+  return list;
+}
 function level(s){return s===null?['na','직접 확인']:s<35?['bad','부족']:s<65?['mid','보통']:['good','충분']}
 // 보완 우선순위 = 대학 반영 비율 × 부족한 정도
 function gaps(r){
@@ -401,7 +417,8 @@ const mk=(univ,track,w)=>({id:univ,univ,track,memo:'',elements:['학업역량','
 const SAMPLES=[mk('예시 · 학업 중시형','실제 대학 기준으로 바꿔 쓰세요',[50,30,20]),mk('예시 · 진로 중시형','실제 대학 기준으로 바꿔 쓰세요',[30,50,20]),mk('예시 · 균형형','실제 대학 기준으로 바꿔 쓰세요',[35,35,30])];
 const KEY='schoolRecordCriteria';
 let list;try{list=JSON.parse(localStorage.getItem(KEY))}catch{}
-if(!Array.isArray(list)||!list.length)list=SAMPLES;
+list=mergeCriteria(Array.isArray(list)?list:[],window.RATIO||[]);
+if(!list.length)list=SAMPLES;
 let curId=list[0].id,sents=[],sentSec=[],summary=[],hasSections=false,grades=[],scaleSel='auto',ran=false,excluded=new Set(),override={},editing=null;
 const cur=()=>list.find(c=>c.id===curId)||list[0];
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(list))}catch{}};
@@ -410,7 +427,7 @@ const rerender=()=>{if(ran)renderResult()};
 
 $('#field').innerHTML='<option value="">선택 안 함</option>'+Object.keys(FIELDS).map(f=>`<option>${f}</option>`).join('');
 function renderSel(){
-  $('#sel').innerHTML=list.map(c=>`<option value="${esc(c.id)}"${c.id===cur().id?' selected':''}>${esc(c.univ)} · ${esc(c.track)}</option>`).join('');
+  $('#sel').innerHTML=[...list].sort((a,b)=>a.univ.localeCompare(b.univ,'ko')).map(c=>`<option value="${esc(c.id)}"${c.id===cur().id?' selected':''}>${esc(c.univ)} · ${esc(c.track)}</option>`).join('');
   const c=cur();
   $('#curinfo').textContent=c.elements.map(e=>`${e.name} ${e.weight}%`).join(' / ')+(c.memo?' · 메모: '+c.memo:'');
   $('#major').value=c.major||'';$('#field').value=c.field||'';$('#core').value=c.core||'';$('#rec').value=c.rec||'';
@@ -425,10 +442,11 @@ if(FIND.size){
     const r=FIND.get(e.target.value);if(!r)return;
     const [u,unit,dept,core,rec,etc]=r,a=cleanSubjects(core),b=cleanSubjects(rec);
     // 이 대학의 평가 기준이 아직 없으면 학업 30/진로 50/공동체 20으로 하나 만들어 둔다(전형명 자리에 확인 안내)
-    let c=list.find(x=>x.univ.includes(u)||u.includes(x.univ));
-    if(!c){c=mk(u,'반영 비율을 확인해 고치세요',[30,50,20]);c.id=Date.now().toString(36);list.push(c)}
-    Object.assign(c,{major:dept||unit,field:'',core:a.list,rec:b.list,note:[a.note&&'핵심과목: '+a.note,b.note&&'권장과목: '+b.note,etc&&etc!=='-'&&'비고: '+etc.replace(/\s+/g,' ')].filter(Boolean).join(' / ')});
-    curId=c.id;save();renderSel();rerender();e.target.value='';
+    let cs=list.filter(x=>univKey(x.univ)===univKey(u));
+    if(!cs.length){const c=mk(u,'반영 비율을 확인해 고치세요',[30,50,20]);c.id=Date.now().toString(36);list.push(c);cs=[c]}
+    const info={major:dept||unit,field:'',core:a.list,rec:b.list,note:[a.note&&'핵심과목: '+a.note,b.note&&'권장과목: '+b.note,etc&&etc!=='-'&&'비고: '+etc.replace(/\s+/g,' ')].filter(Boolean).join(' / ')};
+    cs.forEach(c=>Object.assign(c,info));
+    if(!cs.includes(cur()))curId=cs[0].id;save();renderSel();rerender();e.target.value='';
   };
 }
 /* ── 희망 학과와 과목 ── */
@@ -480,7 +498,7 @@ $('#dSave').onclick=()=>{
   if(!elements.length){alert('평가요소를 하나 이상 입력하세요.');return}
   // 새 기준은 지금 적어 둔 희망 학과·과목을 이어받는다
   const base=editing||cur();
-  const c={id:editing?.id||Date.now().toString(36),univ,track:$('#dTrack').value.trim(),memo:$('#dMemo').value.trim(),elements,major:base.major,field:base.field,core:base.core,rec:base.rec};
+  const c={id:editing?.id||Date.now().toString(36),univ,track:$('#dTrack').value.trim(),memo:$('#dMemo').value.trim(),elements,edited:true,major:base.major,field:base.field,core:base.core,rec:base.rec};
   if(editing)list[list.indexOf(editing)]=c;else list.push(c);
   curId=c.id;save();$('#dlg').close();renderSel();rerender();
 };
